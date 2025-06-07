@@ -1,13 +1,13 @@
-# 🔍 LangChain Tools Integration Tutorial
+# 🔍 LangChain Tools & LangGraph Integration Tutorial
 
-This repository demonstrates how to use various tools from the `langchain_community` module, including Wikipedia, YouTube, Tavily search tools, and how to define your own custom tools with LangChain.
+This repository demonstrates how to integrate various tools from the `langchain_community` module—such as Wikipedia, YouTube, and Tavily search—as well as how to define and run custom tools and workflows using LangChain and LangGraph.
 
 ---
 
 ## 📦 Installation
 
 ```bash
-pip install langchain langchain-community wikipedia youtube-search-python
+pip install langchain langchain-community wikipedia youtube-search-python langgraph langchain-google-genai
 ```
 
 ---
@@ -17,16 +17,23 @@ pip install langchain langchain-community wikipedia youtube-search-python
 - [📘 Wikipedia Tool](#-wikipedia-tool)
 - [📺 YouTube Search Tool](#-youtube-search-tool)
 - [🌐 Tavily Search Tool](#-tavily-search-tool)
-- [🧪 Custom Tool: Multiply Function](#-custom-tool-multiply-function)
-- [🧮 Custom Tool: Word Length](#-custom-tool-word-length)
-- [📬 Placeholder Tool: Gmail API Call](#-placeholder-tool-gmail-api-call)
+- [🧪 Custom Tools](#-custom-tools)
+  - [🔢 Multiply Function](#multiply-function)
+  - [🔤 Word Length Function](#word-length-function)
+  - [📬 Placeholder: Gmail API Call](#placeholder-gmail-api-call)
 - [🛠️ Common Mistakes & Fixes](#️-common-mistakes--fixes)
+- [🔄 LangGraph Workflow](#-langgraph-workflow)
+  - [✅ Sanity Check](#sanity-check)
+  - [🧱 Build Simple Functions](#build-simple-functions)
+  - [🔁 LangGraph Workflow with Functions](#langgraph-workflow-with-functions)
+  - [🧠 LangGraph + Gemini LLM + Token Counter](#langgraph--gemini-llm--token-counter)
+  - [📊 Visualize Workflow](#visualize-workflow)
+- [👤 Author](#-author)
+- [🧠 License](#-license)
 
 ---
 
 ## 📘 Wikipedia Tool
-
-**Purpose**: Answer general knowledge questions using Wikipedia.
 
 ```python
 from langchain_community.tools import WikipediaQueryRun
@@ -35,103 +42,71 @@ from langchain_community.utilities import WikipediaAPIWrapper
 api_wrapper = WikipediaAPIWrapper(top_k_results=5, doc_content_chars_max=500)
 wiki_tool = WikipediaQueryRun(api_wrapper=api_wrapper)
 
-print(wiki_tool.name)          # 'wikipedia'
-print(wiki_tool.description)
-print(wiki_tool.args)
-
-# Run the tool
 print(wiki_tool.run({"query": "Elon Musk"}))
 print(wiki_tool.run({"query": "RCB"}))
 ```
-
-> ✅ **Tip**: Ignore the BeautifulSoup parser warning for basic use.
 
 ---
 
 ## 📺 YouTube Search Tool
 
-**Purpose**: Find videos by person name on YouTube.
-
 ```python
 from langchain_community.tools import YouTubeSearchTool
 
 tool = YouTubeSearchTool()
-
-print(tool.name)               # 'youtube_search'
-print(tool.description)
-
-# Run the tool
 print(tool.run("sunny savita"))
 print(tool.run("krish naik"))
 ```
-
-> 🔢 To limit results, use: `"krish naik, 3"`
 
 ---
 
 ## 🌐 Tavily Search Tool
 
-**Purpose**: Perform real-time web search.
-
 ```python
 from langchain_community.tools.tavily_search import TavilySearchResults
 import os
 
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-tool = TavilySearchResults(tavily_api_key=TAVILY_API_KEY)
+tool = TavilySearchResults(tavily_api_key=os.getenv("TAVILY_API_KEY"))
 
-results = tool.invoke({"query": "what happened in RCB victory celebration?"})
-
+results = tool.invoke({"query": "RCB victory celebration"})
 for r in results[:2]:
     print(f"Title: {r['title']}\nURL: {r['url']}\n")
 ```
 
 ---
 
-## 🧪 Custom Tool: Multiply Function
+## 🧪 Custom Tools
+
+### 🔢 Multiply Function
 
 ```python
 from langchain.agents import tool
 
 @tool
 def multiply(a: int, b: int) -> int:
-    """this tool is for the multiplication"""
+    """Multiplies two integers."""
     return a * b
 
-print(multiply.invoke({"a": 10, "b": 20}))  # Output: 200
-
-# Metadata
-print(multiply.name)
-print(multiply.description)
-print(multiply.args)
+print(multiply.invoke({"a": 10, "b": 20}))
 ```
 
----
-
-## 🧮 Custom Tool: Word Length
+### 🔤 Word Length Function
 
 ```python
 @tool
 def get_word_length(word: str) -> int:
-    """this function is calculating the length of the word"""
+    """Returns the length of a word."""
     return len(word)
 
-print(get_word_length.invoke({"word": "sunny"}))  # Output: 5
-
-# Metadata
-print(get_word_length.name)
-print(get_word_length.description)
-print(get_word_length.args)
+print(get_word_length.invoke({"word": "sunny"}))
 ```
 
----
-
-## 📬 Placeholder Tool: Gmail API Call
+### 📬 Placeholder: Gmail API Call
 
 ```python
 @tool
-def call_gamil_api(args):
-    """this is my gmail API calling function"""
+def call_gmail_api(args):
+    """Placeholder for Gmail API integration."""
     pass
 ```
 
@@ -139,20 +114,113 @@ def call_gamil_api(args):
 
 ## 🛠️ Common Mistakes & Fixes
 
-| ❌ Problem                          | ✅ Fix                                                               |
-|-----------------------------------|----------------------------------------------------------------------|
-| `multiply.run(10, 20)`            | Use `multiply.invoke({"a": 10, "b": 20})` after applying `@tool`     |
-| `tool.run("query")`               | For most LangChain tools, use `.invoke({"query": "..."})` instead    |
-| Using regular functions as tools  | You **must** decorate them with `@tool` from `langchain.agents`     |
+| ❌ Issue                            | ✅ Solution                                                            |
+|-----------------------------------|------------------------------------------------------------------------|
+| `multiply.run(10, 20)`            | Use `multiply.invoke({"a": 10, "b": 20})`                              |
+| `tool.run("query")`               | Use `.invoke({"query": "..."})` instead                                |
+| Forgetting `@tool` decorator      | Add `@tool` from `langchain.agents` to define custom tools             |
 
 ---
 
-## 📎 Author
+## 🔄 LangGraph Workflow
 
-Made by [@NahidZeinali-web](https://github.com/Nahidzeinali-web) using LangChain & Python 🐍
+### ✅ Sanity Check
+
+```python
+print("all ok")
+```
+
+### 🧱 Build Simple Functions
+
+```python
+def function1(input1):
+    return input1 + " from first function"
+
+def function2(input2):
+    return input2 + " savita from second function"
+
+def function3(input3):
+    pass
+```
+
+### 🔁 LangGraph Workflow with Functions
+
+```python
+from langgraph.graph import Graph
+
+workflow1 = Graph()
+workflow1.add_node("fun1", function1)
+workflow1.add_node("fun2", function2)
+workflow1.add_edge("fun1", "fun2")
+workflow1.set_entry_point("fun1")
+workflow1.set_finish_point("fun2")
+
+app = workflow1.compile()
+```
+
+### ▶️ Run and Stream
+
+```python
+print(app.invoke("hi this is sunny"))
+
+for output in app.stream("hi this is rohit"):
+    for key, value in output.items():
+        print(f"Output from {key}:\n{value}\n")
+```
+
+### 🧠 LangGraph + Gemini LLM + Token Counter
+
+```python
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+def llm(input):
+    model = ChatGoogleGenerativeAI(model='gemini-1.5-flash')
+    return model.invoke(input).content
+
+def token_counter(input):
+    tokens = input.split()
+    return f"Total tokens: {len(tokens)}"
+```
+
+### 🔗 Create Workflow
+
+```python
+workflow2 = Graph()
+workflow2.add_node("My_LLM", llm)
+workflow2.add_node("Token_Counter", token_counter)
+workflow2.add_edge("My_LLM", "Token_Counter")
+workflow2.set_entry_point("My_LLM")
+workflow2.set_finish_point("Token_Counter")
+
+app = workflow2.compile()
+print(app.invoke("Tell me about India's capital."))
+```
+
+### ⏳ Stream Output
+
+```python
+for output in app.stream("Details on Tata Enterprise."):
+    for key, value in output.items():
+        print(f"Output from {key}:\n{value}\n")
+```
+
+---
+
+## 📊 Visualize Workflow
+
+```python
+from IPython.display import Image, display
+display(Image(app.get_graph().draw_mermaid_png()))
+```
+
+---
+
+## 👤 Author
+
+Made with 💡 by [@NahidZeinali-web](https://github.com/Nahidzeinali-web)
 
 ---
 
 ## 🧠 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
