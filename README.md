@@ -439,7 +439,7 @@ app = workflow.compile()
 
 ### 🚀 Step 12: Test the Application
 
-python
+```python
 state = {"messages": ["what is a GDP of usa?"]}
 result = app.invoke(state)
 
